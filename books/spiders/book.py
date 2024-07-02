@@ -10,16 +10,15 @@ class BookSpider(scrapy.Spider):
     def parse(self, response: Response, **kwargs):
         for book in response.css(".product_pod"):
             book_url = book.css("h3 > a::attr(href)").get()
-            yield response.follow(book_url, callback=self.parse_single_book)
+            yield response.follow(book_url, callback=self.parse_book_detail)
 
         next_page_url = response.css(".next > a::attr(href)").get()
-        print(next_page_url)
 
         if next_page_url is not None:
             yield response.follow(next_page_url, callback=self.parse)
 
     @staticmethod
-    def parse_single_book(book: Response):
+    def parse_book_detail(book: Response):
         rate = {
             "One": 1,
             "Two": 2,
@@ -31,7 +30,7 @@ class BookSpider(scrapy.Spider):
             "title": book.css("h1::text").get(),
             "price": float(book.css(".price_color::text").get().replace("£", "")),
             "amount_in_stock": int(
-                book.css(".availability").get().split()[-3].replace("(", "")
+                book.css(".availability::text").re_first(r'\d+')
             ),
             "rating": rate[book.css(
                 ".star-rating::attr(class)"
